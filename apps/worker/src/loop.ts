@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { fetchSource, type AtsAdapter, type DiscoveryOptions } from "@autoply/ats";
+import { fetchSource, parseCommunityList, type AtsAdapter, type DiscoveryOptions } from "@autoply/ats";
 import { getDb, getProfile, getSettings, heartbeat, readWorkerState, schema, type Db } from "@autoply/core/db";
 import { createLlm, llmAvailable, type Llm } from "@autoply/core/llm";
 import { ingestPostings, matchNewPostings } from "@autoply/core/matching";
@@ -21,11 +21,45 @@ export type WorkerDeps = {
   keepBlockedPagesOpen?: boolean;
 };
 
+const communityPolledAt = new Map<string, number>();
+
+/**
+ * Community job lists (e.g. the new-grad lists on GitHub) are a source of
+ * company boards: every Greenhouse/Lever/Ashby board they link to becomes a
+ * source, and the normal board polling fetches its postings.
+ */
+export async function syncCommunityLists(deps: WorkerDeps, opts: { force?: boolean } = {}) {
+  const { db } = deps;
+  const settings = getSettings(db);
+  const now = (deps.now ?? (() => new Date()))().getTime();
+  const fetchFn = deps.discovery?.fetch ?? fetch;
+  let added = 0;
+  for (const url of settings.communityLists) {
+    const last = communityPolledAt.get(url) ?? 0;
+    if (!opts.force && now - last < settings.discoveryIntervalMinutes * 60_000) continue;
+    communityPolledAt.set(url, now);
+    try {
+      const res = await fetchFn(url);
+      if (!res.ok) continue;
+      const boards = new Map<string, { ats: "greenhouse" | "lever" | "ashby"; boardToken: string; companyName: string }>();
+      for (const row of parseCommunityList(await res.text())) boards.set(`${row.ats}:${row.boardToken}`, { ats: row.ats, boardToken: row.boardToken, companyName: row.company });
+      for (const b of boards.values()) {
+        const r = db.insert(schema.sources).values(b).onConflictDoNothing().run();
+        added += r.changes;
+      }
+    } catch {
+      // A list being unreachable shouldn't stop discovery; it's retried next interval.
+    }
+  }
+  return added;
+}
+
 /** Polls sources whose last poll is older than the discovery interval, then matches new postings. */
 export async function discover(deps: WorkerDeps, opts: { force?: boolean } = {}) {
   const { db } = deps;
   const settings = getSettings(db);
   const now = (deps.now ?? (() => new Date()))();
+  await syncCommunityLists(deps, opts);
   const sources = db.select().from(schema.sources).where(eq(schema.sources.enabled, true)).all();
   let found = 0;
   for (const s of sources) {
