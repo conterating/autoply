@@ -4,7 +4,9 @@ import { join } from "node:path";
 import { Command } from "commander";
 import { getDb } from "@autoply/core/db";
 import { autoplyHome } from "@autoply/core/paths";
-import { isWorkerAlive, readWorkerState, runOnce } from "@autoply/worker";
+import { ADAPTERS, isWorkerAlive, openBrowser, readWorkerState, runOnce } from "@autoply/worker";
+import { createLlm, llmAvailable } from "@autoply/core/llm";
+import { getSettings } from "@autoply/core/db";
 import { runDoctor } from "./doctor.ts";
 import {
   portFile,
@@ -99,9 +101,21 @@ program
   .description("Run one pass of the pipeline in the foreground")
   .option("--dry-run", "Fill forms but stop before clicking submit", true)
   .option("--no-dry-run", "Actually submit (respects Settings)")
-  .action(async (opts: { dryRun: boolean }) => {
-    const result = await runOnce(getDb(), { dryRun: opts.dryRun });
-    console.log(result.summary);
+  .option("--headed", "Show the browser window")
+  .action(async (opts: { dryRun: boolean; headed?: boolean }) => {
+    const db = getDb();
+    const context = await openBrowser({ headless: !opts.headed });
+    try {
+      const llm = (await llmAvailable()) ? await createLlm(getSettings(db)) : null;
+      const result = await runOnce(
+        { db, adapters: ADAPTERS, newPage: () => context.newPage(), llm, workerId: `cli-${process.pid}` },
+        { dryRun: opts.dryRun },
+      );
+      console.log(result.summary);
+      for (const o of result.outcomes) console.log(`  #${o.applicationId} ${o.status}: ${o.detail}`);
+    } finally {
+      await context.close();
+    }
   });
 
 program

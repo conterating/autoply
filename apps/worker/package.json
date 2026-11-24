@@ -14,6 +14,8 @@
     "@autoply/ats": "workspace:*",
     "@autoply/core": "workspace:*",
     "drizzle-orm": "^0.45.4",
+    "pdf-lib": "^1.17.1",
+    "playwright": "1.65.1",
     "tsx": "^4.23.15"
   }
 }

@@ -10,7 +10,11 @@
     "./llm": "./src/llm/index.ts",
     "./secrets": "./src/secrets.ts",
     "./resume": "./src/resume/index.ts",
-    "./documents": "./src/documents/index.ts"
+    "./documents": "./src/documents/index.ts",
+    "./resolver": "./src/resolver/index.ts",
+    "./writing": "./src/writing/index.ts",
+    "./applications/transition": "./src/applications/transition.ts",
+    "./matching": "./src/matching/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

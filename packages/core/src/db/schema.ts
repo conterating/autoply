@@ -114,6 +114,10 @@ export const applications = sqliteTable(
     postSubmitScreenshot: text("post_submit_screenshot"),
     dryRun: integer("dry_run", { mode: "boolean" }).notNull().default(true),
     autopilotEligible: integer("autopilot_eligible", { mode: "boolean" }).notNull().default(false),
+    /** Set when the user approves a `ready` application in Review mode. */
+    approvedAt: text("approved_at"),
+    /** Why the application needs the user in the browser (CAPTCHA, verification, uncertain submit). */
+    needsUserReason: text("needs_user_reason"),
     lastError: text("last_error"),
     attempts: integer("attempts").notNull().default(0),
     /** Worker lease for crash recovery. */

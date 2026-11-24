@@ -39,7 +39,7 @@ export const TRANSITIONS: Record<ApplicationStatus, readonly ApplicationStatus[]
   filling: ["needs_input", "needs_user", "ready", "queued", "failed"],
   needs_input: ["queued", "withdrawn", "failed"],
   needs_user: ["queued", "ready", "submitted", "withdrawn", "failed"],
-  ready: ["submitting", "queued", "withdrawn", "failed"],
+  ready: ["submitting", "queued", "needs_user", "withdrawn", "failed"],
   // `submitting` is written *before* the click; a crash here is never retried
   // automatically (the application may or may not have gone out).
   submitting: ["submitted", "needs_user", "failed"],

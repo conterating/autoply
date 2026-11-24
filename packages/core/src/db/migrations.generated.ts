@@ -23,5 +23,12 @@ export const MIGRATIONS: { tag: string; statements: string[] }[] = [
       "CREATE UNIQUE INDEX `sources_ats_board_uq` ON `sources` (`ats`,`board_token`);",
       "CREATE TABLE `worker_state` (\n\t`id` integer PRIMARY KEY NOT NULL,\n\t`desired` text DEFAULT 'paused' NOT NULL,\n\t`pid` integer,\n\t`heartbeat_at` text,\n\t`activity` text,\n\t`updated_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL\n);"
     ]
+  },
+  {
+    "tag": "0001_sour_mentallo",
+    "statements": [
+      "ALTER TABLE `applications` ADD `approved_at` text;",
+      "ALTER TABLE `applications` ADD `needs_user_reason` text;"
+    ]
   }
 ];

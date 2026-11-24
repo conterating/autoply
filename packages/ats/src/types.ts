@@ -1,27 +1,8 @@
 import type { Page } from "playwright";
 
-export type FieldType = "text" | "textarea" | "select" | "radio" | "checkbox" | "file" | "date" | "email" | "tel" | "number";
+import type { FieldAnswer, FormField } from "@autoply/core";
 
-/** A form field as it appears on the page. */
-export type FormField = {
-  /** Stable id within the form (input name / id). */
-  id: string;
-  label: string;
-  helpText?: string;
-  type: FieldType;
-  required: boolean;
-  options?: { value: string; label: string }[];
-  /** Multi-select checkboxes / multi selects. */
-  multiple?: boolean;
-  /** Page number in multi-page flows (0-based). */
-  page?: number;
-};
-
-export type FieldAnswer =
-  | { kind: "text"; value: string }
-  | { kind: "option"; values: string[] }
-  | { kind: "boolean"; value: boolean }
-  | { kind: "file"; path: string; filename: string };
+export type { FieldAnswer, FieldType, FormField } from "@autoply/core";
 
 export type NormalizedPosting = {
   ats: string;
@@ -41,8 +22,13 @@ export type SubmitOutcome =
   | { ok: true }
   | { ok: false; reason: "captcha" | "verification" | "validation_error" | "closed" | "error"; message: string };
 
+/** What's on the page after navigating to an application URL, before filling. */
+export type PageState = { kind: "form" } | { kind: "closed"; message: string } | { kind: "blocked"; reason: "captcha" | "verification" | "login"; message: string };
+
 export interface AtsAdapter {
   readonly kind: string;
+  /** Navigates to the application form (from a posting or apply URL) and reports what's there. */
+  open(page: Page, applyUrl: string): Promise<PageState>;
   discover(board: { boardToken: string; companyName: string }): Promise<NormalizedPosting[]>;
   extractForm(page: Page): Promise<FormField[]>;
   fill(page: Page, answers: Map<string, FieldAnswer>): Promise<void>;

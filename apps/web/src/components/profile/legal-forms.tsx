@@ -283,6 +283,7 @@ export function ScreeningForm({ profile, mode, backHref }: Props) {
   const [bg, setBg] = useState(s.willingBackgroundCheck.value);
   const [drug, setDrug] = useState(s.willingDrugTest.value);
   const [years, setYears] = useState(s.skillYears.value ?? []);
+  const [attest, setAttest] = useState(s.acceptAttestations.value);
 
   return (
     <form
@@ -303,6 +304,7 @@ export function ScreeningForm({ profile, mode, backHref }: Props) {
             willingBackgroundCheck: bg,
             willingDrugTest: drug,
             skillYears: years.filter((y) => y.skill.trim()),
+            acceptAttestations: attest,
           },
         });
       }}
@@ -324,6 +326,23 @@ export function ScreeningForm({ profile, mode, backHref }: Props) {
         )}
         <Choice name="bg" legend="Willing to undergo a background check?" options={YES_NO} value={bg} onChange={setBg} />
         <Choice name="drug" legend="Willing to take a drug test?" options={YES_NO} value={drug} onChange={setDrug} />
+      </Section>
+
+      <Section
+        title="Attestations and signatures"
+        description="Most forms end with “I certify the information above is true” or a privacy-policy consent, and some ask you to type your name as a signature."
+      >
+        <Choice
+          name="attest"
+          legend="Let Autoply accept these for you?"
+          options={[
+            { value: true, label: "Yes, accept them and sign with my legal name" },
+            { value: false, label: "No, ask me each time" },
+          ]}
+          value={attest}
+          onChange={setAttest}
+          hint="Covers truthfulness certifications, privacy and data-processing consents, and e-signatures with your confirmed legal name. Anything else (for example arbitration agreements) is always asked in Needs input."
+        />
       </Section>
 
       <Section title="Conflicts">

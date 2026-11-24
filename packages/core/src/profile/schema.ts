@@ -249,6 +249,12 @@ export const ScreeningSchema = z
     willingBackgroundCheck: field(z.boolean()),
     willingDrugTest: field(z.boolean()),
     skillYears: fieldWithDefault(z.array(z.object({ skill: z.string().min(1), years: z.number().min(0).max(60) })), []),
+    /**
+     * Explicit consent to accept standard attestations on the user's behalf:
+     * "the information I provided is true", privacy-policy / data-processing
+     * consent, and typing the confirmed legal name as an e-signature.
+     */
+    acceptAttestations: field(z.boolean()),
   })
   .prefault({});
 
