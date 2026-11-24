@@ -6,14 +6,22 @@
   "exports": {
     ".": "./src/index.ts",
     "./db": "./src/db/index.ts",
-    "./paths": "./src/paths.ts"
+    "./paths": "./src/paths.ts",
+    "./llm": "./src/llm/index.ts",
+    "./secrets": "./src/secrets.ts",
+    "./resume": "./src/resume/index.ts",
+    "./documents": "./src/documents/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.12.0",
+    "@napi-rs/keyring": "^2.1.2",
     "better-sqlite3": "^13.2.0",
     "drizzle-orm": "^0.45.4",
+    "mammoth": "^1.13.0",
+    "unpdf": "^2.2.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {

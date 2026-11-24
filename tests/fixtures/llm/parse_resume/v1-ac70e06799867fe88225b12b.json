@@ -1,0 +1,91 @@
+{
+  "task": "parse_resume",
+  "key": "v1-ac70e06799867fe88225b12b",
+  "source": "hand-authored",
+  "input": {
+    "documentSha256": "92600c37d8309cf679ee659bed0ea70598ec3b422bbb9834daadd59e858c5416"
+  },
+  "output": {
+    "firstName": "Jordan",
+    "middleName": null,
+    "lastName": "Rivera",
+    "email": "jordan.rivera@example.com",
+    "phone": "+1 (555) 010-4477",
+    "city": "Austin",
+    "state": "TX",
+    "country": "United States",
+    "linkedin": "https://linkedin.com/in/jordan-rivera-dev",
+    "github": "https://github.com/jrivera-dev",
+    "website": null,
+    "experience": [
+      {
+        "company": "Northwind Labs",
+        "title": "Software Engineer Intern",
+        "location": "Austin, TX",
+        "startDate": "2025-05",
+        "endDate": "2025-08",
+        "current": false,
+        "bullets": [
+          "Built a TypeScript service that cut report generation time from 40s to 6s.",
+          "Added integration tests for the billing API, raising coverage from 52% to 81%."
+        ]
+      },
+      {
+        "company": "UT Austin Department of Computer Science",
+        "title": "Teaching Assistant",
+        "location": null,
+        "startDate": "2024-01",
+        "endDate": null,
+        "current": true,
+        "bullets": [
+          "Lead weekly lab sections of 30 students for Data Structures."
+        ]
+      }
+    ],
+    "education": [
+      {
+        "school": "University of Texas at Austin",
+        "degreeLevel": "bachelor",
+        "degree": "B.S. Computer Science",
+        "major": "Computer Science",
+        "minor": "Mathematics",
+        "gpa": 3.7,
+        "gpaScale": 4,
+        "startDate": null,
+        "graduationDate": "2026-05",
+        "graduationExpected": true,
+        "honors": [
+          "Dean's List (2023, 2024)"
+        ]
+      }
+    ],
+    "skills": [
+      "TypeScript",
+      "Python",
+      "React",
+      "Node.js",
+      "PostgreSQL",
+      "Docker",
+      "Git"
+    ],
+    "certifications": [],
+    "languages": [
+      {
+        "language": "English",
+        "proficiency": "native"
+      },
+      {
+        "language": "Spanish",
+        "proficiency": "professional_working"
+      }
+    ],
+    "projects": [
+      {
+        "name": "Trailhead",
+        "description": "Route planner for hikers built with React and PostgreSQL.",
+        "url": "https://trailhead.example.com"
+      }
+    ],
+    "publications": []
+  }
+}

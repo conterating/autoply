@@ -5,9 +5,9 @@ export const ModelSettingsSchema = z
     /** Small, fast model: question classification, relevance scoring, claim extraction. */
     classify: z.string().min(1).default("claude-haiku-5-5"),
     /** Stronger model: cover letters and free-text answers. */
-    write: z.string().min(1).default("claude-sonnet-5-5"),
+    write: z.string().min(1).default("claude-opus-5-5"),
     /** Resume parsing. */
-    parse: z.string().min(1).default("claude-sonnet-5-5"),
+    parse: z.string().min(1).default("claude-opus-5-5"),
   })
   .prefault({});
 

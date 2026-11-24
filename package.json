@@ -23,9 +23,11 @@
     "@eslint/js": "^9.39.0",
     "@playwright/test": "1.65.1",
     "@types/node": "^24.0.0",
+    "docx": "^9.16.0",
     "eslint": "^9.39.0",
     "eslint-config-next": "16.4.6",
     "globals": "^16.4.0",
+    "pdf-lib": "^1.17.1",
     "typescript": "6.0.3",
     "typescript-eslint": "^8.50.0",
     "vitest": "^5.1.1"
