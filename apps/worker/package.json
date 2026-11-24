@@ -1,0 +1,19 @@
+{
+  "name": "@autoply/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@autoply/ats": "workspace:*",
+    "@autoply/core": "workspace:*",
+    "drizzle-orm": "^0.45.4",
+    "tsx": "^4.23.15"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@autoply/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "autoply": "./bin/autoply.js"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@autoply/core": "workspace:*",
+    "@autoply/worker": "workspace:*",
+    "commander": "^15.1.0",
+    "playwright": "1.65.1",
+    "tsx": "^4.23.15"
+  }
+}
