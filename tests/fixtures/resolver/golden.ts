@@ -211,6 +211,7 @@ export const GOLDEN: GoldenItem[] = [
   g("Current immigration status", "visa_type"),
   g("Visa type", "visa_type"),
   g("If you hold a visa, what type?", "visa_type"),
+  g("What visa type will you need?", "novel"),
   g("Please select your current work authorization status", "visa_type", {
     options: ["U.S. Citizen", "Permanent Resident", "F-1 OPT", "H-1B", "Other"],
   }),

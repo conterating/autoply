@@ -9,8 +9,13 @@ import { chromium, type BrowserContext } from "playwright";
  */
 export async function openBrowser(opts: { headless?: boolean; userDataDir?: string } = {}): Promise<BrowserContext> {
   const headless = opts.headless ?? (process.env.AUTOPLY_HEADLESS === "1" || process.env.NODE_ENV === "test" || process.env.AUTOPLY_TEST === "1");
-  return chromium.launchPersistentContext(opts.userDataDir ?? ensureDataDirs().browserProfile, {
+  const context = await chromium.launchPersistentContext(opts.userDataDir ?? ensureDataDirs().browserProfile, {
     headless,
     viewport: { width: 1280, height: 900 },
   });
+  // The worker runs under tsx, whose esbuild transform wraps functions in a
+  // `__name(...)` helper. Functions passed to page.evaluate are serialized with
+  // that call, so define a no-op in every page.
+  await context.addInitScript("globalThis.__name = globalThis.__name || ((f) => f);");
+  return context;
 }

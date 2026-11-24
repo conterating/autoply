@@ -1,4 +1,4 @@
-export type AtsName = "greenhouse" | "lever" | "ashby";
+export type AtsName = "greenhouse" | "lever" | "ashby" | "workday";
 
 export type Submission = {
   id: string;
@@ -12,7 +12,7 @@ export type Submission = {
 
 export type Parsed = Pick<Submission, "fields" | "files">;
 
-export type Reply = { status: number; type?: string; body: string };
+export type Reply = { status: number; type?: string; body: string; /** Extra response headers (Location, Set-Cookie). */ headers?: Record<string, string> };
 
 export type Ctx = {
   method: string;
@@ -21,6 +21,10 @@ export type Ctx = {
   origin: string;
   /** Parsed POST body, null for non-POST requests. */
   form: Parsed | null;
+  /** Request cookies. */
+  cookies: Record<string, string>;
+  /** Per-server mutable state for stateful replicas (accounts, sessions); cleared by reset(). */
+  state: Record<string, unknown>;
   record(s: { ats: AtsName; board: string; jobId: string; parsed: Parsed }): Submission;
 };
 

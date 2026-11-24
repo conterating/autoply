@@ -200,6 +200,9 @@ importers:
       docx:
         specifier: ^9.16.0
         version: 9.16.0
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@opentelemetry/api@1.10.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@13.2.0)
       eslint:
         specifier: ^9.39.0
         version: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)

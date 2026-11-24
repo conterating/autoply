@@ -10,11 +10,11 @@ export * from "./key.ts";
 export { AnthropicLlm } from "./anthropic.ts";
 export { FakeLlm, RecordingLlm, ReplayLlm } from "./replay.ts";
 
-export type LlmMode = "live" | "replay" | "record";
+export type LlmMode = "live" | "replay" | "record" | "off";
 
 export function llmMode(): LlmMode {
   const m = process.env.AUTOPLY_LLM_MODE;
-  return m === "replay" || m === "record" ? m : "live";
+  return m === "replay" || m === "record" || m === "off" ? m : "live";
 }
 
 export function fixturesDir(): string {
@@ -29,6 +29,7 @@ export function fixturesDir(): string {
  */
 export async function createLlm(settings: Settings): Promise<Llm> {
   const mode = llmMode();
+  if (mode === "off") throw new LlmUnavailableError("LLM is turned off (AUTOPLY_LLM_MODE=off).");
   if (mode === "replay") return new ReplayLlm(fixturesDir());
   const { key } = await getApiKey();
   const live = new AnthropicLlm(settings.models, key ?? undefined);
@@ -37,6 +38,7 @@ export async function createLlm(settings: Settings): Promise<Llm> {
 
 /** True when a live call could plausibly succeed (or we're replaying). */
 export async function llmAvailable(): Promise<boolean> {
+  if (llmMode() === "off") return false;
   if (llmMode() === "replay") return true;
   const { key } = await getApiKey();
   return Boolean(key || process.env.ANTHROPIC_AUTH_TOKEN || process.env.ANTHROPIC_PROFILE);

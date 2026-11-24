@@ -2,7 +2,7 @@ import type { AtsName } from "./core.ts";
 
 export type Workplace = "remote" | "hybrid" | "onsite";
 export type PostingKind = "swe-newgrad" | "swe-senior" | "non-eng";
-export type Variant = "conditionalSponsorship" | "captcha" | "serverError" | "multiPage";
+export type Variant = "conditionalSponsorship" | "captcha" | "serverError" | "multiPage" | "emailVerification";
 
 export type Description = { intro: string; sections: { title: string; items: string[] }[] };
 
@@ -134,6 +134,13 @@ const ashby = postings("Fabrikam AI", [
   { id: "ab5b1000-7e57-4a11-8c00-000000000006", title: "Software Engineer, New Grad - Full Stack", kind: "swe-newgrad", location: "Seattle, WA", workplace: "hybrid", variants: ["multiPage"] },
 ]);
 
+const workday = postings("Woodgrove Bank", [
+  { id: "R-10231", title: "Software Engineer, New Grad", kind: "swe-newgrad", location: "Austin, TX", workplace: "hybrid" },
+  { id: "R-10232", title: "Financial Systems Analyst", kind: "non-eng", location: "Chicago, IL", workplace: "onsite", department: "Finance" },
+  { id: "R-10233", title: "Senior Software Engineer, Payments", kind: "swe-senior", location: "Dallas, TX", workplace: "hybrid", variants: ["emailVerification"] },
+  { id: "R-10234", title: "Software Engineer, New Grad - Risk", kind: "swe-newgrad", location: "Charlotte, NC", workplace: "onsite", closed: true },
+]);
+
 export const FIXTURE_BOARDS = {
   greenhouse: {
     ats: "greenhouse",
@@ -163,6 +170,13 @@ export const FIXTURE_BOARDS = {
       multiPage: "ab5b1000-7e57-4a11-8c00-000000000006",
     },
   } as Board<{ conditionalSponsorship: string; multiPage: string }>,
+  workday: {
+    ats: "workday",
+    token: "woodgrove",
+    company: "Woodgrove Bank",
+    postings: workday,
+    variants: { emailVerification: "R-10233", closed: "R-10234" },
+  } as Board<{ emailVerification: string; closed: string }>,
 };
 
 export const SPONSORSHIP_LABEL = "Will you require sponsorship?";

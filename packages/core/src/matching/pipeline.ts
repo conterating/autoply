@@ -63,6 +63,36 @@ export function ingestPostings(db: Db, sourceId: number | null, incoming: Ingest
   return inserted;
 }
 
+/**
+ * Fallback relevance score without an API key: how well the posting title
+ * matches a confirmed target title, plus confirmed skills mentioned in the
+ * description. Coarse on purpose; Claude's score replaces it once a key is set.
+ */
+export function keywordScore(posting: { title: string; description: string }, profile: Profile): { score: number; reason: string } {
+  const words = (s: string) => new Set(s.toLowerCase().replace(/[^a-z0-9+#]+/g, " ").split(" ").filter((w) => w.length > 1));
+  const title = words(posting.title);
+  const targets = profile.preferences.targetTitles.confirmedByUser ? (profile.preferences.targetTitles.value ?? []) : [];
+  let titleFit = targets.length ? 0 : 0.5;
+  let best = "";
+  for (const t of targets) {
+    const tw = [...words(t)];
+    const fit = tw.length ? tw.filter((w) => title.has(w)).length / tw.length : 0;
+    if (fit > titleFit) {
+      titleFit = fit;
+      best = t;
+    }
+  }
+  const desc = posting.description.toLowerCase();
+  const skills = profile.skills.confirmedByUser ? (profile.skills.value ?? []) : [];
+  const hits = skills.filter((s) => desc.includes(s.toLowerCase()));
+  const skillFit = skills.length ? Math.min(1, hits.length / Math.min(5, skills.length)) : 0.5;
+  const score = Math.round(titleFit * 70 + skillFit * 30);
+  const reason = [best ? `Title matches “${best}”` : "Title doesn’t match your target titles", hits.length ? `mentions ${hits.slice(0, 3).join(", ")}` : null]
+    .filter(Boolean)
+    .join("; ") + " (keyword match; add a Claude API key for a better score)";
+  return { score, reason };
+}
+
 export type MatchSummary = { processed: number; skipped: number; queued: number; errors: number };
 
 /**
@@ -71,7 +101,7 @@ export type MatchSummary = { processed: number; skipped: number; queued: number;
  */
 export async function matchNewPostings(
   db: Db,
-  ctx: { llm: Llm; profile: Profile; settings: Settings },
+  ctx: { llm: Llm | null; profile: Profile; settings: Settings },
 ): Promise<MatchSummary> {
   const { llm, profile, settings } = ctx;
   const todo = db
@@ -115,7 +145,7 @@ export async function matchNewPostings(
 
     let result;
     try {
-      result = await scoreRelevance(llm, { posting, profileSummary: profileText });
+      result = llm ? await scoreRelevance(llm, { posting, profileSummary: profileText }) : keywordScore(posting, profile);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       db.update(applications)

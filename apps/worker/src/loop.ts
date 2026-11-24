@@ -42,7 +42,9 @@ export async function discover(deps: WorkerDeps, opts: { force?: boolean } = {})
         .run();
     }
   }
-  const matched = deps.llm ? await matchNewPostings(db, { llm: deps.llm, profile: getProfile(db), settings }) : null;
+  const profile = getProfile(db);
+  // Only match once onboarding is done; otherwise every posting would be scored against an empty profile.
+  const matched = profile.onboarding.completedAt ? await matchNewPostings(db, { llm: deps.llm, profile, settings }) : null;
   return { found, matched };
 }
 
@@ -106,6 +108,12 @@ export function approvedWaiting(db: Db) {
     .all().length;
 }
 
+/** Tests point discovery at the fixture server with AUTOPLY_DISCOVERY_BASE_URL. */
+export function discoveryOptionsFromEnv(): DiscoveryOptions {
+  const baseUrl = process.env.AUTOPLY_DISCOVERY_BASE_URL;
+  return baseUrl ? { baseUrl, backoff: { retries: 0 } } : {};
+}
+
 function randomBetween(minS: number, maxS: number) {
   return (minS + Math.random() * Math.max(0, maxS - minS)) * 1000;
 }
@@ -142,16 +150,17 @@ export async function runWorker(opts: { signal?: AbortSignal; adapters: Record<s
       const state = readWorkerState(db);
       if (state?.desired !== "running") {
         activity = "Paused";
-        await sleep(1_000, opts.signal);
+        await sleep(Math.min(1_000, Number(process.env.AUTOPLY_IDLE_MS ?? 1_000)), opts.signal);
         continue;
       }
       activity = "Working";
       const llm = (await llmAvailable()) ? await createLlm(getSettings(db)) : null;
-      const result = await runOnce({ db, adapters: opts.adapters, newPage, llm, workerId, keepBlockedPagesOpen: true });
+      const result = await runOnce({ db, adapters: opts.adapters, newPage, llm, workerId, keepBlockedPagesOpen: true, discovery: discoveryOptionsFromEnv() });
       activity = result.didWork ? result.summary : "Idle";
       const settings = getSettings(db);
       // Human-scale pacing between applications; a short idle poll otherwise.
-      await sleep(result.outcomes.length ? randomBetween(settings.pacing.minSeconds, settings.pacing.maxSeconds) : 15_000, opts.signal);
+      const idleMs = Number(process.env.AUTOPLY_IDLE_MS ?? 15_000);
+      await sleep(result.outcomes.length ? randomBetween(settings.pacing.minSeconds, settings.pacing.maxSeconds) : idleMs, opts.signal);
     }
   } finally {
     clearInterval(beat);

@@ -6,6 +6,7 @@ import { FIXTURE_BOARDS } from "./data.ts";
 import { handleGreenhouse } from "./greenhouse.ts";
 import { esc, htmlReply, jsonReply, layout } from "./html.ts";
 import { handleLever } from "./lever.ts";
+import { handleWorkday } from "./workday.ts";
 import { parseBody } from "./multipart.ts";
 
 const MAX_BODY = 25 * 1024 * 1024;
@@ -36,6 +37,15 @@ function readBody(req: http.IncomingMessage): Promise<Buffer> {
   });
 }
 
+function parseCookies(header: string | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const part of (header ?? "").split(";")) {
+    const i = part.indexOf("=");
+    if (i > 0) out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return out;
+}
+
 function indexPage(): Reply {
   const items = Object.values(FIXTURE_BOARDS)
     .map((b) => `<li>${esc(b.ats)}: ${esc(b.company)} (${esc(b.token)}), ${b.postings.length} postings</li>`)
@@ -47,6 +57,7 @@ export async function startFixtureServer(opts: { port?: number } = {}): Promise<
   let subs: Submission[] = [];
   let counter = 0;
   let origin = "";
+  const state: Record<string, unknown> = {};
 
   const server = http.createServer((req, res) => {
     void (async () => {
@@ -62,6 +73,8 @@ export async function startFixtureServer(opts: { port?: number } = {}): Promise<
           query: url.searchParams,
           origin,
           form,
+          cookies: parseCookies(req.headers.cookie),
+          state,
           record: ({ ats, board, jobId, parsed }) => {
             counter += 1;
             const sub: Submission = {
@@ -81,16 +94,17 @@ export async function startFixtureServer(opts: { port?: number } = {}): Promise<
         else if (url.pathname === "/__reset" && method === "POST") {
           subs = [];
           counter = 0;
+          for (const k of Object.keys(state)) delete state[k];
           reply = jsonReply(200, { ok: true });
         } else if (url.pathname === "/" && method === "GET") reply = indexPage();
         else {
-          reply = (await handleGreenhouse(ctx)) ?? (await handleLever(ctx)) ?? (await handleAshby(ctx));
+          reply = (await handleGreenhouse(ctx)) ?? (await handleLever(ctx)) ?? (await handleAshby(ctx)) ?? (await handleWorkday(ctx));
         }
         reply ??= htmlReply(404, layout({ title: "Not found", body: "<h1>Not found</h1>" }));
       } catch (err) {
         reply = htmlReply(500, layout({ title: "Error", body: `<h1>Fixture server error</h1><pre>${esc(String(err))}</pre>` }));
       }
-      res.writeHead(reply.status, { "content-type": reply.type ?? "text/plain", "cache-control": "no-store" });
+      res.writeHead(reply.status, { "content-type": reply.type ?? "text/plain", "cache-control": "no-store", ...reply.headers });
       res.end(reply.body);
     })();
   });
@@ -109,6 +123,7 @@ export async function startFixtureServer(opts: { port?: number } = {}): Promise<
     reset: () => {
       subs = [];
       counter = 0;
+      for (const k of Object.keys(state)) delete state[k];
     },
     close: () =>
       new Promise<void>((resolve, reject) => {

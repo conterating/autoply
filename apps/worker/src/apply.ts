@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AtsAdapter, FieldAnswer, FormField } from "@autoply/ats";
 import { transition } from "@autoply/core/applications/transition";
@@ -92,12 +92,25 @@ async function coverLetterPdf(text: string, applicationId: number, company: stri
     if (line) flush();
     else y -= size * 1.45;
   }
-  const dir = join(ensureDataDirs().home, "generated");
+  const dir = join(ensureDataDirs().home, "uploads", String(applicationId));
   mkdirSync(dir, { recursive: true });
   const filename = `Cover Letter - ${company.replace(/[^\w .-]/g, "")}.pdf`;
-  const path = join(dir, `cover-letter-${applicationId}.pdf`);
+  const path = join(dir, filename);
   writeFileSync(path, await pdf.save());
   return { path, filename };
+}
+
+/**
+ * ATS forms post the uploaded file's own name, so stage each document under
+ * its original filename (documents are stored by content hash).
+ */
+function stageUpload(applicationId: number, sourcePath: string, filename: string): { path: string; filename: string } {
+  const dir = join(ensureDataDirs().home, "uploads", String(applicationId));
+  mkdirSync(dir, { recursive: true });
+  const safe = filename.replace(/[/\\:*?"<>|]/g, "_");
+  const dest = join(dir, safe);
+  copyFileSync(sourcePath, dest);
+  return { path: dest, filename: safe };
 }
 
 function answersMap(resolutions: Resolution[]): Map<string, FieldAnswer> {
@@ -161,8 +174,8 @@ export async function prepareApplication(deps: ApplyDeps, applicationId: number)
         return row ? { id: row.id, text: (row.answer as { text: string }).text } : null;
       },
       documents: {
-        resume: resume ? { path: documentPath(resume), filename: resume.filename } : null,
-        transcript: transcript ? { path: documentPath(transcript), filename: transcript.filename } : null,
+        resume: resume ? stageUpload(applicationId, documentPath(resume), resume.filename) : null,
+        transcript: transcript ? stageUpload(applicationId, documentPath(transcript), transcript.filename) : null,
       },
     };
 
@@ -178,16 +191,19 @@ export async function prepareApplication(deps: ApplyDeps, applicationId: number)
           out.push(r);
           continue;
         }
+        const field = byId.get(r.fieldId)!;
         if (!deps.llm) {
-          out.push({ ...r, status: "needs_input", reason: "No Claude API key, so this can’t be written for you" });
+          out.push({ ...r, status: field.required ? "needs_input" : "skipped", reason: "No Claude API key, so this can’t be written for you" });
           continue;
         }
-        const field = byId.get(r.fieldId)!;
         if (r.canonicalKey === "cover_letter") {
           if (!coverLetter) {
-            const d = await draftVerified(deps.llm, { kind: "cover_letter", profile, job });
+            const d = await draftVerified(deps.llm, { kind: "cover_letter", profile, job }).catch((e: unknown) => ({
+              status: "needs_input" as const,
+              reason: e instanceof Error ? e.message : String(e),
+            }));
             if (d.status !== "ok") {
-              out.push({ ...r, status: "needs_input", reason: `Cover letter didn’t pass fact-checking: ${d.reason}` });
+              out.push({ ...r, status: field.required ? "needs_input" : "skipped", reason: `Cover letter didn’t pass fact-checking: ${d.reason}` });
               continue;
             }
             coverLetter = d.text;
@@ -200,7 +216,9 @@ export async function prepareApplication(deps: ApplyDeps, applicationId: number)
           }
           continue;
         }
-        const d = await draftVerified(deps.llm, { kind: "answer", profile, question: field.label, job, maxLength: field.type === "text" ? 300 : 1500 });
+        const d = await draftVerified(deps.llm, { kind: "answer", profile, question: field.label, job, maxLength: field.type === "text" ? 300 : 1500 }).catch(
+          (e: unknown) => ({ status: "needs_input" as const, reason: `Couldn’t write this (${e instanceof Error ? e.message : String(e)})` }),
+        );
         if (d.status === "ok") {
           out.push({ ...r, status: "answered", answer: { kind: "text", value: d.text }, display: d.text, source: "llm_draft", reason: "Written from your profile and fact-checked" });
         } else {
@@ -213,7 +231,8 @@ export async function prepareApplication(deps: ApplyDeps, applicationId: number)
     // Resolve, fill, and re-extract to catch fields revealed by earlier answers.
     let fields = await adapter.extractForm(page);
     let resolutions = await draft(await resolveForm(fields, ctx), fields);
-    for (let round = 0; round < 3; round++) {
+    // Multi-page forms (Workday) reveal one page per fill; keep going until nothing new appears.
+    for (let round = 0; round < 12; round++) {
       if (resolutions.some((r) => r.status === "needs_input")) break;
       await adapter.fill(page, answersMap(resolutions));
       const after = await adapter.extractForm(page);
@@ -243,11 +262,8 @@ export async function prepareApplication(deps: ApplyDeps, applicationId: number)
     }
 
     const pre = await screenshot(page, applicationId, "pre");
-    const requiredOk = resolutions.every((r) => {
-      const f = fields.find((x) => x.id === r.fieldId);
-      return !f?.required || (r.status === "answered" && (r.source !== "profile" || r.confidence >= settings.answerConfidenceThreshold));
-    });
-    const autopilotEligible = requiredOk && (app.matchScore ?? 0) >= settings.autopilotMatchThreshold;
+    const eligibility = autopilotEligibility(fields, resolutions, { matchScore: app.matchScore, settings });
+    const autopilotEligible = eligibility.eligible;
     transition(db, applicationId, "ready", "Filled and ready for review", {
       ...release,
       preSubmitScreenshot: pre,
@@ -255,7 +271,7 @@ export async function prepareApplication(deps: ApplyDeps, applicationId: number)
       resumeDocumentId,
       autopilotEligible,
     });
-    return { applicationId, status: "ready", detail: autopilotEligible ? "Ready (autopilot eligible)" : "Ready for review" };
+    return { applicationId, status: "ready", detail: autopilotEligible ? "Ready (autopilot eligible)" : `Ready for review: ${eligibility.reasons.join("; ")}` };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     try {
@@ -267,6 +283,36 @@ export async function prepareApplication(deps: ApplyDeps, applicationId: number)
   } finally {
     if (!keepOpen) await page.close().catch(() => {});
   }
+}
+
+/** Answers Autopilot trusts without review: exact catalog matches at high confidence, your own words, and documents. */
+const AUTOPILOT_MIN_CONFIDENCE = 0.95;
+
+/**
+ * Autopilot sends only when every required field resolved confidently and the
+ * match score clears the autopilot bar. Anything else waits for review.
+ */
+export function autopilotEligibility(
+  fields: FormField[],
+  resolutions: Resolution[],
+  opts: { matchScore: number | null; settings: { autopilotMatchThreshold: number; answerConfidenceThreshold: number } },
+): { eligible: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+  const required = new Set(fields.filter((f) => f.required).map((f) => f.id));
+  for (const r of resolutions) {
+    if (!required.has(r.fieldId)) continue;
+    if (r.status !== "answered") {
+      reasons.push(`“${r.label}” isn’t answered`);
+      continue;
+    }
+    const trusted = r.source === "answer_bank" || r.source === "user" || r.source === "document" || r.source === "llm_draft";
+    const confident = r.matchedBy === "pattern" && r.confidence >= Math.max(AUTOPILOT_MIN_CONFIDENCE, opts.settings.answerConfidenceThreshold);
+    if (!trusted && !confident) reasons.push(`“${r.label}” was matched with ${Math.round(r.confidence * 100)}% confidence`);
+  }
+  if ((opts.matchScore ?? 0) < opts.settings.autopilotMatchThreshold) {
+    reasons.push(`match score ${Math.round(opts.matchScore ?? 0)} is below the autopilot bar of ${opts.settings.autopilotMatchThreshold}`);
+  }
+  return { eligible: reasons.length === 0, reasons };
 }
 
 export type SubmitDecision = { ok: true; reason: string } | { ok: false; reason: string };

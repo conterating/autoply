@@ -155,6 +155,16 @@ function workAuthorized(p: Profile, ctx: AnswerContext, label: string): ProfileA
   return val(entry.authorized);
 }
 
+export const US_STATES: Record<string, string> = {
+  AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado", CT: "Connecticut", DE: "Delaware",
+  DC: "District of Columbia", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa",
+  KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota",
+  MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey",
+  NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio", OK: "Oklahoma", OR: "Oregon",
+  PA: "Pennsylvania", PR: "Puerto Rico", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas",
+  UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
+};
+
 // ------------------------------------------------------------------ catalog
 
 /**
@@ -186,7 +196,8 @@ export const CATALOG: CatalogEntry[] = [
   {
     key: "signature_date",
     category: "legal",
-    patterns: [/^signature date$/, /^(today s|todays|current) date$/, /^date signed$/],
+    // A bare "Date" on application forms is the signature date (e.g. the CC-305 disability form).
+    patterns: [/^signature date$/, /^(today s|todays|current) date$/, /^date signed$/, /^date$/],
     answer: (p, field, ctx) => {
       const ok = confirmed(p.screening.acceptAttestations, "Consent to sign for you");
       if (!isOk(ok) || ok.ok !== true) return missing("You haven’t allowed Autoply to sign for you");
@@ -283,7 +294,8 @@ export const CATALOG: CatalogEntry[] = [
     key: "visa_type",
     category: "legal",
     patterns: [/\bvisa (status|type)\b/, /\bimmigration status\b/, /\bwhat type\b.*\bvisa\b|\bvisa\b.*\bwhat type\b/, /\bwork authori[sz]ation status\b/],
-    not: [/\bsponsor/],
+    // "What visa type will you need?" asks about a future visa, not the current status.
+    not: [/\bsponsor/, /\b(will|would) (you )?(need|require)\b/],
     when: (f) => !(f.options?.length && f.options.every((o) => /\bauthori[sz]ed\b/i.test(o.label))),
     answer: (p, field) => {
       const citizen = p.workAuthorization.citizenship;
@@ -714,7 +726,19 @@ export const CATALOG: CatalogEntry[] = [
     key: "state",
     category: "standard",
     patterns: [/^state\b/, /^province$/, /^region$/, /^state province$/],
-    answer: (p) => fromField(p.identity.state, "State / province"),
+    answer: (p, field) => {
+      const st = confirmed(p.identity.state, "State / province");
+      if (!isOk(st)) return st;
+      // Dropdowns usually list full names; profiles often hold the abbreviation (and vice versa).
+      if (field.options?.length) {
+        const full = US_STATES[st.ok.trim().toUpperCase()];
+        const abbr = Object.entries(US_STATES).find(([, name]) => name.toLowerCase() === st.ok.trim().toLowerCase())?.[0];
+        const labels = field.options.map((o) => o.label.toLowerCase());
+        if (full && labels.includes(full.toLowerCase())) return val(full);
+        if (abbr && labels.includes(abbr.toLowerCase())) return val(abbr);
+      }
+      return val(st.ok);
+    },
   },
   {
     key: "country",
