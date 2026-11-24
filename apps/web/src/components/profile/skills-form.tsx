@@ -16,7 +16,7 @@ const PROFICIENCY: Record<(typeof LanguageProficiency.options)[number], string> 
 };
 
 export function SkillsForm({ profile, mode, backHref }: { profile: Profile; mode: FormMode; backHref?: string }) {
-  const { submit, pending, issue, error, savedAt } = useStepForm("skills", mode);
+  const { submit, pending, issue, error, savedAt, formProps } = useStepForm("skills", mode);
   const [skills, setSkills] = useState(profile.skills.value ?? []);
   const [languages, setLanguages] = useState(profile.languages);
   const [certs, setCerts] = useState(profile.certifications);
@@ -25,6 +25,7 @@ export function SkillsForm({ profile, mode, backHref }: { profile: Profile; mode
 
   return (
     <form
+      {...formProps}
       noValidate
       onSubmit={(e) => {
         e.preventDefault();

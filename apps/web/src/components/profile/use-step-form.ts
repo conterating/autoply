@@ -40,5 +40,15 @@ export function useStepForm(step: OnboardingStepId, mode: FormMode) {
     return issues[path] ?? Object.entries(issues).find(([k]) => k.startsWith(`${path}.`))?.[1];
   }
 
-  return { submit, pending, issue, error, savedAt };
+  /** Spread on the <form>: editing clears the stale errors from the last save attempt. */
+  const formProps = {
+    onChange: () => {
+      if (Object.keys(issues).length || error) {
+        setIssues({});
+        setError(null);
+      }
+    },
+  };
+
+  return { submit, pending, issue, error, savedAt, formProps };
 }

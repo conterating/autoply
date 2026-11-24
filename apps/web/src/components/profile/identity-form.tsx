@@ -43,7 +43,7 @@ const LINKS = [
 ] as const;
 
 export function IdentityForm({ profile, mode, backHref }: { profile: Profile; mode: FormMode; backHref?: string }) {
-  const { submit, pending, issue, error, savedAt } = useStepForm("identity", mode);
+  const { submit, pending, issue, error, savedAt, formProps } = useStepForm("identity", mode);
   const ident = profile.identity as unknown as Record<string, F>;
   const links = profile.links as unknown as Record<string, F>;
   const [values, setValues] = useState<Record<string, string>>(() => ({
@@ -88,7 +88,7 @@ export function IdentityForm({ profile, mode, backHref }: { profile: Profile; mo
   };
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-8">
+    <form {...formProps} onSubmit={onSubmit} noValidate className="flex flex-col gap-8">
       <Section title="Name" description="Use your legal name exactly as it appears on ID. Background checks match against it.">
         <div className="grid gap-4 sm:grid-cols-3">{IDENTITY.map((f) => text("identity", f))}</div>
       </Section>

@@ -32,7 +32,7 @@ const opts = <T extends string>(labels: Record<T, string>) => (Object.keys(label
 const num = (s: string) => (s.trim() === "" ? null : Number(s.replace(/[,$\s]/g, "")));
 
 export function PreferencesForm({ profile, mode, backHref }: Props) {
-  const { submit, pending, issue, error, savedAt } = useStepForm("preferences", mode);
+  const { submit, pending, issue, error, savedAt, formProps } = useStepForm("preferences", mode);
   const p0 = profile.preferences;
   const [titles, setTitles] = useState(p0.targetTitles.value ?? []);
   const [seniority, setSeniority] = useState(p0.seniority.value ?? []);
@@ -50,6 +50,7 @@ export function PreferencesForm({ profile, mode, backHref }: Props) {
 
   return (
     <form
+      {...formProps}
       noValidate
       className="flex flex-col gap-8"
       onSubmit={(e) => {
@@ -132,12 +133,13 @@ export function PreferencesForm({ profile, mode, backHref }: Props) {
 }
 
 export function VoiceForm({ profile, mode, backHref }: Props) {
-  const { submit, pending, issue, error, savedAt } = useStepForm("voice", mode);
+  const { submit, pending, issue, error, savedAt, formProps } = useStepForm("voice", mode);
   const [tone, setTone] = useState(profile.voice.tone.value ?? "");
   const [examples, setExamples] = useState(profile.voice.examples.value ?? []);
 
   return (
     <form
+      {...formProps}
       noValidate
       className="flex flex-col gap-8"
       onSubmit={(e) => {

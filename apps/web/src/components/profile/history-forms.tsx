@@ -28,11 +28,12 @@ function range(start: string | null, end: string | null, current: boolean, expec
 }
 
 export function ExperienceForm({ profile, mode, backHref }: { profile: Profile; mode: FormMode; backHref?: string }) {
-  const { submit, pending, issue, error, savedAt } = useStepForm("experience", mode);
+  const { submit, pending, issue, error, savedAt, formProps } = useStepForm("experience", mode);
   const [items, setItems] = useState<Experience[]>(profile.experience);
 
   return (
     <form
+      {...formProps}
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
@@ -88,11 +89,12 @@ export function ExperienceForm({ profile, mode, backHref }: { profile: Profile; 
 }
 
 export function EducationForm({ profile, mode, backHref }: { profile: Profile; mode: FormMode; backHref?: string }) {
-  const { submit, pending, issue, error, savedAt } = useStepForm("education", mode);
+  const { submit, pending, issue, error, savedAt, formProps } = useStepForm("education", mode);
   const [items, setItems] = useState<Education[]>(profile.education);
 
   return (
     <form
+      {...formProps}
       noValidate
       onSubmit={(e) => {
         e.preventDefault();

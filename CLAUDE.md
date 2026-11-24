@@ -30,6 +30,22 @@ pnpm db:generate             # after editing packages/core/src/db/schema.ts
 
 Workspace packages export TypeScript source directly (no build step); imports use explicit `.ts` extensions inside packages.
 
+## Pipeline and modules
+
+- `packages/core/src/resolver/`: the question resolver. `catalog.ts` (canonical keys, categories, patterns, profile answers), `options.ts` (fitting values to options, incl. every "decline" wording), `resolve.ts` (deterministic match → LLM classify → profile / Answer Bank / Needs Input / draft). Golden set `tests/fixtures/resolver/golden.ts`; blind held-out set `tests/fixtures/resolver/holdout.ts`. When adding catalog patterns, run both and keep zero critical errors (a sensitive key resolved wrongly).
+- `packages/core/src/writing/`: cover letters and essay answers from a confirmed-facts sheet, with claim extraction + deterministic verification (`draftVerified`).
+- `packages/core/src/matching/`: hard filters, Claude relevance score (keyword fallback without a key), ingest + match into applications.
+- `packages/core/src/applications/transition.ts`: the only way to change an application's status (atomic, writes an event).
+- `packages/ats/src/discovery/`: public board APIs (see `docs/ats-endpoints.md`). `packages/ats/src/adapters/`: one adapter per ATS, driving hosted forms by label.
+- `apps/worker/src/apply.ts`: prepare (open → extract → resolve → draft → fill → re-extract revealed fields → screenshot → ready) and submit (refill → submit guard → `submitting` → click → confirm). `loop.ts`: recover → discover → submit approved/autopilot → prepare queued.
+- `tests/fixtures/ats/`: fixture Greenhouse/Lever/Ashby/Workday (`docs/fixture-ats.md`).
+
+## Environment variables
+
+`AUTOPLY_HOME` (data dir), `AUTOPLY_LLM_MODE` (`live` default, `replay`, `record`, `off`), `AUTOPLY_LLM_FIXTURES` (replay dir), `AUTOPLY_LIVE_LLM=1` (enable live-API tests), `AUTOPLY_TEST=1` / `NODE_ENV=test` (submit guard on, keychain off), `AUTOPLY_HEADLESS=1`, `AUTOPLY_IDLE_MS`, `AUTOPLY_DISCOVERY_BASE_URL` (tests point discovery at the fixture server), `AUTOPLY_PORT`.
+
+LLM fixtures under `tests/fixtures/llm` marked `"source": "hand-authored"` stand in for recordings; replace them by running the relevant tests with `AUTOPLY_LLM_MODE=record` and a key.
+
 ## Hard rules (enforced in code, covered by tests; do not weaken)
 
 1. **Legal and demographic questions are never answered by the LLM.** Work authorization, sponsorship, EEO (gender, race, Hispanic/Latino, veteran, disability, orientation, transgender), criminal history, clearance, age, and any attestation or signature field are filled only from profile fields with `confirmedByUser: true`. The LLM may classify the question; it may not supply the answer. Missing or unmappable → `needs_input`.

@@ -127,7 +127,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
                       ) : x.source ? (
                         <span className="rounded bg-surface-2 px-1.5 py-px text-2xs font-medium text-ink-2">{SOURCES[x.source] ?? x.source}</span>
                       ) : null}
-                      {x.confidence != null && <span className="font-mono text-2xs text-ink-3 tabular" title="Confidence">{Math.round(x.confidence * 100)}%</span>}
+                      {x.confidence != null && x.answerDisplay && <span className="font-mono text-2xs text-ink-3 tabular" title="Confidence">{Math.round(x.confidence * 100)}%</span>}
                     </span>
                   </div>
                   {x.pending ? (
@@ -139,7 +139,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
                   ) : (
                     <p className="text-[13px] break-words whitespace-pre-wrap text-ink">{x.answerDisplay || <span className="text-ink-3">No answer</span>}</p>
                   )}
-                  {x.reason && <p className="text-xs text-ink-3">{x.reason}</p>}
+                  {x.reason && !/^(from profile|exact match)$/i.test(x.reason) && <p className="text-xs text-ink-3">{x.reason}</p>}
                 </li>
               ))}
             </ul>

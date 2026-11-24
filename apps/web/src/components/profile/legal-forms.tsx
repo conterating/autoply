@@ -35,7 +35,7 @@ const CLEARANCE: Record<(typeof ClearanceLevel.options)[number], string> = {
 };
 
 export function AuthorizationForm({ profile, mode, backHref }: Props) {
-  const { submit, pending, issue, error, savedAt } = useStepForm("authorization", mode);
+  const { submit, pending, issue, error, savedAt, formProps } = useStepForm("authorization", mode);
   const wa = profile.workAuthorization;
   const [countries, setCountries] = useState<{ country: string; authorized: boolean | null }[]>(
     wa.authorizedCountries.value?.length ? wa.authorizedCountries.value : [{ country: "US", authorized: null }],
@@ -49,6 +49,7 @@ export function AuthorizationForm({ profile, mode, backHref }: Props) {
 
   return (
     <form
+      {...formProps}
       noValidate
       className="flex flex-col gap-8"
       onSubmit={(e) => {
@@ -195,7 +196,7 @@ const ORIENTATION: Record<(typeof SexualOrientation.options)[number], string> = 
 const opts = <T extends string>(labels: Record<T, string>) => (Object.keys(labels) as T[]).map((value) => ({ value, label: labels[value] }));
 
 export function EeoForm({ profile, mode, backHref }: Props) {
-  const { submit, pending, issue, error, savedAt } = useStepForm("eeo", mode);
+  const { submit, pending, issue, error, savedAt, formProps } = useStepForm("eeo", mode);
   const e0 = profile.eeo;
   const [gender, setGender] = useState(e0.gender.value);
   const [race, setRace] = useState(e0.raceEthnicity.value ?? ["decline"]);
@@ -207,6 +208,7 @@ export function EeoForm({ profile, mode, backHref }: Props) {
 
   return (
     <form
+      {...formProps}
       noValidate
       className="flex flex-col gap-8"
       onSubmit={(e) => {
@@ -270,7 +272,7 @@ export function EeoForm({ profile, mode, backHref }: Props) {
 // ------------------------------------------------------------ screening
 
 export function ScreeningForm({ profile, mode, backHref }: Props) {
-  const { submit, pending, issue, error, savedAt } = useStepForm("screening", mode);
+  const { submit, pending, issue, error, savedAt, formProps } = useStepForm("screening", mode);
   const s = profile.screening;
   const [over18, setOver18] = useState(s.over18.value);
   const [convicted, setConvicted] = useState(s.hasCriminalConviction.value);
@@ -287,6 +289,7 @@ export function ScreeningForm({ profile, mode, backHref }: Props) {
 
   return (
     <form
+      {...formProps}
       noValidate
       className="flex flex-col gap-8"
       onSubmit={(e) => {
